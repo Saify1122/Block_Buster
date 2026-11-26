@@ -1,52 +1,45 @@
 #include <SFML/Graphics.hpp>
-#include<iostream>
+#include <iostream>
 #include <optional>
 #include <string>
 #include <fstream>
 #include <cstdlib>
 #include <ctime>
+
 using namespace std;
 
-// ===== CONSTANTS (Section 4 values) =====
 const int   WIN_W = 600, WIN_H = 700, HUD_H = 50;
 const int   ROWS = 8, COLS = 10;
 const float BRICK_W = 60.f, BRICK_H = 25.f, BRICKS_Y = 100.f;
-const int PADDLE_W = 110, PADDLE_H = 48, PADDLE_Y = 625, PADDLE_SPEED = 8;
-const int   BALL_SIZE = 22;
+const int   PADDLE_W = 100, PADDLE_H = 16, PADDLE_Y = 625, PADDLE_SPEED = 8;
+const int   BALL_SIZE = 16;
 const int   START_LIVES = 3, POINTS_HIT = 10, POINTS_BREAK = 50;
+
 const int NUM_STARS = 70;
 float starX[NUM_STARS];
 float starY[NUM_STARS];
 float starSpeed[NUM_STARS];
 
-// ===== GAME STATES =====
 const int MENU = 0, PLAYING = 1, GAME_OVER = 2;
 
-// ===== KEYS PRESSED ONCE (set by handleInput) =====
 const int KEY_NONE = 0, KEY_LAUNCH = 1, KEY_ENTER = 2, KEY_ESCAPE = 3, KEY_UP = 4, KEY_DOWN = 5;
 
-// ===== GAME DATA (shared by all functions) =====
 int  gameState = MENU;
 int  pressedKey = KEY_NONE;
 int  bricks[ROWS][COLS];
 int  paddleX = 250;
 int  ballX = 0, ballY = 638, dx = 0, dy = 0;
-bool ballWaiting = true;          // true while the ball sits on the paddle
+bool ballWaiting = true;
 int  score = 0, lives = START_LIVES;
 bool playerWon = false;
-int  menuChoice = 0;              // 0 = New Game, 1 = Continue, 2 = Exit
-std::string messageText = "";     // e.g. "No saved game" or the level.txt error
+int  menuChoice = 0;
+std::string messageText = "";
 
 sf::Font font;
 sf::Texture bgTex;
-sf::Texture paddleTex;
-sf::Texture ballTex;
-sf::Texture brickTex[4]; // index 1 = green, 2 = yellow, 3 = red
+sf::Texture brickTex[4];
 
-// =====================================================
-//  YOUR TEAM'S WORK: write these functions yourselves
-// =====================================================
-bool loadLevel() 
+bool loadLevel()
 {
     std::ifstream fin("level.txt");
     if (!fin)
@@ -56,24 +49,24 @@ bool loadLevel()
     }
     int rows, cols;
     fin >> rows >> cols;
-    
+
     for (int i = 0; i < rows; i++)
     {
-        for (int j = 0;j < cols;j++) 
+        for (int j = 0; j < cols; j++)
         {
             fin >> bricks[i][j];
         }
     }
-    return true; 
+    return true;
 }
-//--------------------------------------------------------------------------------------------------------------------------------------------
-void newGame() 
+
+void newGame()
 {
     score = 0;
     lives = START_LIVES;
     paddleX = 250;
     ballX = paddleX + (PADDLE_W - BALL_SIZE) / 2;
-    ballY = PADDLE_Y - BALL_SIZE + 6;
+    ballY = PADDLE_Y - BALL_SIZE;
     dx = 0;
     dy = 0;
     ballWaiting = true;
@@ -85,8 +78,8 @@ void newGame()
     }
     gameState = PLAYING;
 }
-//-----------------------------------------------------------------------------------------------------------------------------------------------
-void movePaddle() 
+
+void movePaddle()
 {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
         paddleX = paddleX - PADDLE_SPEED;
@@ -107,24 +100,24 @@ void movePaddle()
         ballX = paddleX + (PADDLE_W - BALL_SIZE) / 2;
     }
 }
-//------------------------------------------------------------------------------------------------------------------------------------------
-void launchBall() 
+
+void launchBall()
 {
     if (ballWaiting == true && pressedKey == KEY_LAUNCH)
     {
         ballWaiting = false;
         dy = -5;
         if (rand() % 2 == 0)
-           {
-                dx = 3;
-           }
+        {
+            dx = 3;
+        }
         else
-           {
-                dx = -3;
-           }
+        {
+            dx = -3;
+        }
     }
 }
-//---------------------------------------------------------------------------------------------------------------------------------------------
+
 void checkBricks(bool isXStep)
 {
     int cx[4] = { ballX, ballX + BALL_SIZE - 1, ballX, ballX + BALL_SIZE - 1 };
@@ -147,17 +140,14 @@ void checkBricks(bool isXStep)
                 if (bricks[r][c] == 0)
                 {
                     score += POINTS_BREAK;
-                    hit = true;
-                    lastR = r;
-                    lastC = c;
                 }
                 else
                 {
                     score += POINTS_HIT;
-                    hit = true;
-                    lastR = r;
-                    lastC = c;
                 }
+                hit = true;
+                lastR = r;
+                lastC = c;
             }
         }
     }
@@ -174,11 +164,10 @@ void checkBricks(bool isXStep)
             dy = -dy;
         }
     }
-
 }
-//-------------------------------------------------------------------------------------------------------------------------------------------
-void moveBall() 
-{ 
+
+void moveBall()
+{
     if (ballWaiting == true)
     {
         return;
@@ -212,14 +201,13 @@ void moveBall()
             dx = 0;
             dy = 0;
             ballX = paddleX + (PADDLE_W - BALL_SIZE) / 2;
-           ballY = PADDLE_Y - BALL_SIZE + 6;
+            ballY = PADDLE_Y - BALL_SIZE;
         }
     }
 }
-//--------------------------------------------------------------------------------------------------------------------------------------------------------
+
 void bounceOnPaddle()
 {
-    int visualTop = PADDLE_Y + 14; // Has no relation to logic...just for graphics
     if (dy > 0)
     {
         if (ballY + BALL_SIZE >= PADDLE_Y && ballY <= PADDLE_Y + PADDLE_H &&
@@ -256,13 +244,13 @@ void bounceOnPaddle()
         }
     }
 }
-//-----------------------------------------------------------------------------------------------------------------------------------------------
-void hitBricks() 
+
+void hitBricks()
 {
     bool allBroken = true;
-    for (int i = 0;i < ROWS;i++)
+    for (int i = 0; i < ROWS; i++)
     {
-        for (int j = 0;j < COLS;j++)
+        for (int j = 0; j < COLS; j++)
         {
             if (bricks[i][j] > 0)
             {
@@ -276,27 +264,26 @@ void hitBricks()
         gameState = GAME_OVER;
     }
 }
-//----------------------------------------------------------------------------------------------------------------
-void saveGame() 
+
+void saveGame()
 {
     std::ofstream fout("savegame.txt");
     if (!fout)
         return;
     fout << score << " " << lives << " " << paddleX << " " << ballX << " " << ballY << " " << dx << " " << dy << " " << ballWaiting << endl;
-    for (int r = 0; r < ROWS ; r++)
+    for (int r = 0; r < ROWS; r++)
     {
-        for (int c = 0; c < COLS ;c++)
+        for (int c = 0; c < COLS; c++)
         {
             fout << bricks[r][c] << " ";
         }
         fout << endl;
     }
-    fout.close(); 
-
+    fout.close();
 }
-bool loadGame() 
+
+bool loadGame()
 {
-    bool loadGame;
     std::ifstream fin("savegame.txt");
     if (!fin || !(fin >> score))
     {
@@ -305,7 +292,7 @@ bool loadGame()
     fin >> lives >> paddleX >> ballX >> ballY >> dx >> dy >> ballWaiting;
     for (int r = 0; r < ROWS; r++)
     {
-        for (int c = 0; c < COLS;c++)
+        for (int c = 0; c < COLS; c++)
         {
             fin >> bricks[r][c];
         }
@@ -315,13 +302,10 @@ bool loadGame()
     messageText = "";
     gameState = PLAYING;
     return true;
-
-    return false; 
 }
-//================================================================================================================================
 
 void drawText(sf::RenderWindow& w, const std::string& str, float x, float y,
-    unsigned size, sf::Color color = sf::Color::White) 
+    unsigned size, sf::Color color = sf::Color::White)
 {
     sf::Text t(font, str, size);
     t.setFillColor(color);
@@ -340,10 +324,10 @@ void drawBricks(sf::RenderWindow& w)
             {
                 sf::Sprite bSprite(brickTex[hp]);
                 bSprite.setScale({
-                    58.f / brickTex[hp].getSize().x,
-                    23.f / brickTex[hp].getSize().y
+                    (BRICK_W - 2.f) / brickTex[hp].getSize().x,
+                    (BRICK_H - 2.f) / brickTex[hp].getSize().y
                     });
-                bSprite.setPosition({ c * 60.f + 1.f, 100.f + r * 25.f + 1.f });
+                bSprite.setPosition({ c * BRICK_W + 1.f, BRICKS_Y + r * BRICK_H + 1.f });
                 w.draw(bSprite);
             }
         }
@@ -352,38 +336,131 @@ void drawBricks(sf::RenderWindow& w)
 
 void drawPaddleAndBall(sf::RenderWindow& w)
 {
-    // Paddle (missile4fav.png)
-    sf::Sprite pSprite(paddleTex);
-    pSprite.setScale({
-        (float)PADDLE_W / paddleTex.getSize().x,
-        (float)PADDLE_H / paddleTex.getSize().y
-        });
-    pSprite.setPosition({ (float)paddleX, (float)PADDLE_Y });
-    w.draw(pSprite);
+    float px = (float)paddleX;
+    float py = (float)PADDLE_Y;
+    float pw = (float)PADDLE_W;
+    float ph = (float)PADDLE_H;
+    float r = ph / 2.f;
 
-    // Ball (ball.png)
-    sf::Sprite ballSprite(ballTex);
-    ballSprite.setScale({
-        (float)BALL_SIZE / ballTex.getSize().x,
-        (float)BALL_SIZE / ballTex.getSize().y
-        });
-    ballSprite.setPosition({ (float)ballX, (float)ballY + 14.f });
-    w.draw(ballSprite);
+    sf::Color bodyColor(25, 130, 210);
+    sf::Color rimColor(140, 235, 255);
+
+    sf::CircleShape leftCap(r);
+    leftCap.setFillColor(bodyColor);
+    leftCap.setOutlineThickness(2.f);
+    leftCap.setOutlineColor(rimColor);
+    leftCap.setPosition({ px, py });
+    w.draw(leftCap);
+
+    sf::CircleShape rightCap(r);
+    rightCap.setFillColor(bodyColor);
+    rightCap.setOutlineThickness(2.f);
+    rightCap.setOutlineColor(rimColor);
+    rightCap.setPosition({ px + pw - ph, py });
+    w.draw(rightCap);
+
+    sf::RectangleShape centerBody({ pw - ph, ph });
+    centerBody.setFillColor(bodyColor);
+    centerBody.setPosition({ px + r, py });
+    w.draw(centerBody);
+
+    sf::RectangleShape topEdge({ pw - ph, 2.f });
+    topEdge.setFillColor(rimColor);
+    topEdge.setPosition({ px + r, py - 2.f });
+    w.draw(topEdge);
+
+    sf::RectangleShape bottomEdge({ pw - ph, 2.f });
+    bottomEdge.setFillColor(rimColor);
+    bottomEdge.setPosition({ px + r, py + ph });
+    w.draw(bottomEdge);
+
+    sf::RectangleShape coreGlow({ pw - ph - 16.f, 4.f });
+    coreGlow.setFillColor(sf::Color(200, 250, 255));
+    coreGlow.setPosition({ px + r + 8.f, py + ph / 2.f - 2.f });
+    w.draw(coreGlow);
+
+    float bx = (float)ballX;
+    float by = (float)ballY;
+    float br = BALL_SIZE / 2.f;
+
+    sf::CircleShape outerGlow(br + 3.f);
+    outerGlow.setFillColor(sf::Color(255, 120, 20, 75));
+    outerGlow.setPosition({ bx - 3.f, by - 3.f });
+    w.draw(outerGlow);
+
+    sf::CircleShape ballBody(br);
+    ballBody.setFillColor(sf::Color(255, 165, 20));
+    ballBody.setOutlineThickness(1.5f);
+    ballBody.setOutlineColor(sf::Color(255, 240, 150));
+    ballBody.setPosition({ bx, by });
+    w.draw(ballBody);
+
+    sf::CircleShape innerCore(br * 0.5f);
+    innerCore.setFillColor(sf::Color(255, 250, 210));
+    innerCore.setPosition({ bx + br * 0.35f, by + br * 0.35f });
+    w.draw(innerCore);
 }
 
-void drawHUD(sf::RenderWindow& w) 
+void drawHUD(sf::RenderWindow& w)
 {
     sf::RectangleShape strip({ (float)WIN_W, (float)HUD_H });
-    strip.setFillColor(sf::Color(30, 30, 50));
+    strip.setFillColor(sf::Color(15, 20, 40, 230));
     w.draw(strip);
-    drawText(w, "Score: " + std::to_string(score), 15.f, 10.f, 24);
 
-    sf::CircleShape life(8.f);                                // one circle per life
-    life.setFillColor(sf::Color::Red);
-    for (int i = 0; i < lives; i++) 
+    sf::RectangleShape bottomBorder({ (float)WIN_W, 2.f });
+    bottomBorder.setFillColor(sf::Color(80, 190, 255, 180));
+    bottomBorder.setPosition({ 0.f, (float)HUD_H - 2.f });
+    w.draw(bottomBorder);
+
+    sf::RectangleShape scoreBox({ 175.f, 34.f });
+    scoreBox.setFillColor(sf::Color(25, 35, 65, 220));
+    scoreBox.setOutlineThickness(1.5f);
+    scoreBox.setOutlineColor(sf::Color(100, 210, 255, 160));
+    scoreBox.setPosition({ 12.f, 8.f });
+    w.draw(scoreBox);
+
+    drawText(w, "SCORE", 22.f, 15.f, 16, sf::Color(130, 220, 255));
+    drawText(w, std::to_string(score), 90.f, 12.f, 22, sf::Color(255, 225, 70));
+
+    sf::RectangleShape livesBox({ 135.f, 34.f });
+    livesBox.setFillColor(sf::Color(25, 35, 65, 220));
+    livesBox.setOutlineThickness(1.5f);
+    livesBox.setOutlineColor(sf::Color(255, 90, 120, 160));
+    livesBox.setPosition({ (float)WIN_W - 147.f, 8.f });
+    w.draw(livesBox);
+
+    sf::Color heartFill(240, 45, 75);
+    sf::Color heartOutline(255, 175, 190);
+    for (int i = 0; i < lives; i++)
     {
-        life.setPosition({ 480.f + i * 30.f, 17.f });
-        w.draw(life);
+        float x = (float)WIN_W - 130.f + i * 36.f;
+        float y = 16.f;
+
+        sf::CircleShape leftLobe(6.f);
+        leftLobe.setFillColor(heartFill);
+        leftLobe.setOutlineThickness(1.f);
+        leftLobe.setOutlineColor(heartOutline);
+        leftLobe.setPosition({ x, y });
+        w.draw(leftLobe);
+
+        sf::CircleShape rightLobe(6.f);
+        rightLobe.setFillColor(heartFill);
+        rightLobe.setOutlineThickness(1.f);
+        rightLobe.setOutlineColor(heartOutline);
+        rightLobe.setPosition({ x + 10.f, y });
+        w.draw(rightLobe);
+
+        sf::RectangleShape tip({ 12.f, 12.f });
+        tip.setFillColor(heartFill);
+        tip.setOrigin({ 6.f, 6.f });
+        tip.setRotation(sf::degrees(45.f));
+        tip.setPosition({ x + 11.f, y + 9.5f });
+        w.draw(tip);
+
+        sf::CircleShape shine(2.f);
+        shine.setFillColor(sf::Color(255, 230, 235, 200));
+        shine.setPosition({ x + 2.5f, y + 2.5f });
+        w.draw(shine);
     }
 }
 
@@ -402,29 +479,24 @@ void drawMenu(sf::RenderWindow& w)
                 bounds.position.y + bounds.size.y / 2.f
                 });
 
-            // Subtle dark drop shadow
             sf::Text shadow = txt;
             shadow.setFillColor(sf::Color(0, 0, 0, 160));
             shadow.setOutlineThickness(0.f);
             shadow.setPosition({ WIN_W / 2.f + 4.f, y + 4.f });
             w.draw(shadow);
 
-            // Main text centered at X = 300
             txt.setPosition({ WIN_W / 2.f, y });
             w.draw(txt);
         };
 
-    // Title
     drawCenteredText("BLOCK BUSTER", 54, sf::Color(255, 220, 40), sf::Color(200, 60, 20), 170.f);
 
-    // Menu options
     std::string items[3] = { "New Game", "Continue", "Exit" };
     for (int i = 0; i < 3; i++)
     {
         float y = 320.f + i * 65.f;
         if (menuChoice == i)
         {
-            // Draw a glowing pill/box behind the selected option
             sf::RectangleShape box({ 240.f, 46.f });
             box.setOrigin({ 120.f, 23.f });
             box.setPosition({ WIN_W / 2.f, y });
@@ -441,13 +513,11 @@ void drawMenu(sf::RenderWindow& w)
         }
     }
 
-    // Error / info message (e.g., "No saved game")
     if (!messageText.empty())
     {
         drawCenteredText(messageText, 22, sf::Color(255, 90, 90), sf::Color(20, 0, 0), 540.f);
     }
 }
-
 
 void drawEndScreen(sf::RenderWindow& w)
 {
@@ -464,28 +534,23 @@ void drawEndScreen(sf::RenderWindow& w)
                 bounds.position.y + bounds.size.y / 2.f
                 });
 
-            // Subtle dark drop shadow
             sf::Text shadow = txt;
             shadow.setFillColor(sf::Color(0, 0, 0, 160));
             shadow.setOutlineThickness(0.f);
             shadow.setPosition({ WIN_W / 2.f + 4.f, y + 4.f });
             w.draw(shadow);
 
-            // Main text centered at X = 300
             txt.setPosition({ WIN_W / 2.f, y });
             w.draw(txt);
         };
 
-    // 1. Main Title ("YOU WIN" in gold/green or "GAME OVER" in crimson/gold)
     if (playerWon)
         drawCenteredText("YOU WIN!", 56, sf::Color(80, 255, 120), sf::Color(15, 90, 35), 220.f);
     else
         drawCenteredText("GAME OVER", 56, sf::Color(255, 75, 75), sf::Color(110, 15, 25), 220.f);
 
-    // 2. Final Score
     drawCenteredText("Final Score: " + std::to_string(score), 32, sf::Color(255, 220, 40), sf::Color(20, 20, 40), 320.f);
 
-    // 3. Glowing pill box + "Press Enter" prompt matching the menu selection style
     float promptY = 420.f;
     sf::RectangleShape box({ 260.f, 48.f });
     box.setOrigin({ 130.f, 24.f });
@@ -498,17 +563,14 @@ void drawEndScreen(sf::RenderWindow& w)
     drawCenteredText("> Press Enter <", 28, sf::Color(255, 235, 80), sf::Color(20, 20, 40), promptY);
 }
 
-// =====================================================
-//  THE THREE LOOP FUNCTIONS (Feature 1)
-// =====================================================
-void handleInput(sf::RenderWindow& window) 
+void handleInput(sf::RenderWindow& window)
 {
-    pressedKey = KEY_NONE;                                    // forget last frame's key
-    while (const std::optional event = window.pollEvent()) 
+    pressedKey = KEY_NONE;
+    while (const std::optional event = window.pollEvent())
     {
         if (event->is<sf::Event::Closed>())
             window.close();
-        else if (const auto* key = event->getIf<sf::Event::KeyPressed>()) 
+        else if (const auto* key = event->getIf<sf::Event::KeyPressed>())
         {
             if (key->code == sf::Keyboard::Key::Space)       pressedKey = KEY_LAUNCH;
             else if (key->code == sf::Keyboard::Key::Enter)  pressedKey = KEY_ENTER;
@@ -517,12 +579,11 @@ void handleInput(sf::RenderWindow& window)
             else if (key->code == sf::Keyboard::Key::Down)   pressedKey = KEY_DOWN;
         }
     }
-    // Keys held down (paddle) are checked inside movePaddle(), not here.
 }
 
-void updateGame(sf::RenderWindow& window) 
+void updateGame(sf::RenderWindow& window)
 {
-    switch (gameState) 
+    switch (gameState)
     {
     case MENU:
         if (pressedKey == KEY_UP)
@@ -541,7 +602,7 @@ void updateGame(sf::RenderWindow& window)
             }
             if (menuChoice == 1)
             {
-                if(!loadGame())
+                if (!loadGame())
                     messageText = "No saved game";
             }
             if (menuChoice == 2)
@@ -573,7 +634,8 @@ void updateGame(sf::RenderWindow& window)
     }
 }
 
-void drawGame(sf::RenderWindow& window) {
+void drawGame(sf::RenderWindow& window)
+{
     window.clear(sf::Color(25, 25, 45));
 
     sf::Sprite bgSprite(bgTex);
@@ -583,16 +645,20 @@ void drawGame(sf::RenderWindow& window) {
     sf::RectangleShape starShape({ 2.f, 2.f });
     starShape.setFillColor(sf::Color(180, 200, 255, 160));
 
-    for (int i = 0; i < NUM_STARS; i++) {
+    for (int i = 0; i < NUM_STARS; i++)
+    {
         starY[i] += starSpeed[i];
-        if (starY[i] > WIN_H) {
+        if (starY[i] > WIN_H)
+        {
             starY[i] = 0;
             starX[i] = rand() % WIN_W;
         }
         starShape.setPosition({ starX[i], starY[i] });
         window.draw(starShape);
     }
-    switch (gameState) {
+
+    switch (gameState)
+    {
     case MENU:
         drawMenu(window);
         break;
@@ -608,24 +674,25 @@ void drawGame(sf::RenderWindow& window) {
     window.display();
 }
 
-int main() 
+int main()
 {
     srand(static_cast<unsigned>(time(0)));
-    for (int i = 0; i < NUM_STARS; i++) {
+    for (int i = 0; i < NUM_STARS; i++)
+    {
         starX[i] = rand() % WIN_W;
         starY[i] = rand() % WIN_H;
-        starSpeed[i] = 0.5f + (rand() % 3); // different speeds for depth
+        starSpeed[i] = 0.5f + (rand() % 3);
     }
+
     sf::RenderWindow window(sf::VideoMode({ 600, 700 }), "Block Buster");
     window.setFramerateLimit(60);
     if (!font.openFromFile("C:/Windows/Fonts/arial.ttf")) return -1;
     if (!bgTex.loadFromFile("space_background.png")) return -1;
-    if (!paddleTex.loadFromFile("missile4fav.png")) return -1;
-    if (!ballTex.loadFromFile("ball.png")) return -1;
     if (!brickTex[1].loadFromFile("space_brick.png")) return -1;
     if (!brickTex[2].loadFromFile("asteroid_brick.png")) return -1;
     if (!brickTex[3].loadFromFile("blackhole_brick.png")) return -1;
-    while (window.isOpen()) 
+
+    while (window.isOpen())
     {
         handleInput(window);
         updateGame(window);
