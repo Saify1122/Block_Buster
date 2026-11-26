@@ -39,6 +39,19 @@ sf::Font font;
 sf::Texture bgTex;
 sf::Texture brickTex[4];
 
+const int MAX_POWERUPS = 5;
+const int POWER_BIG = 1;
+const int POWER_SPEED = 2;
+const int POWER_SIZE = 18;
+
+bool  powerActive[MAX_POWERUPS];
+float powerX[MAX_POWERUPS], powerY[MAX_POWERUPS];
+int   powerType[MAX_POWERUPS];
+
+int currentPaddleW = PADDLE_W;
+int bigPaddleTimer = 0;
+int speedTimer = 0;
+
 bool loadLevel()
 {
     std::ifstream fin("level.txt");
@@ -72,6 +85,17 @@ void newGame()
     ballWaiting = true;
     playerWon = false;
     messageText = "";
+
+	// Reset power-ups:
+										  // reset the power-up state so a new game doesn't carry over a previous power-up effect
+    currentPaddleW = PADDLE_W;
+    bigPaddleTimer = 0;
+    speedTimer = 0;                                               
+    for (int p = 0; p < MAX_POWERUPS; p++)
+    {
+        powerActive[p] = false;
+    }
+    //---------------
     if (!loadLevel())
     {
         return;
@@ -79,25 +103,27 @@ void newGame()
     gameState = PLAYING;
 }
 
-void movePaddle()
+void movePaddle()                                // speedTimer boosts paddle speed and currentPaddleW handles the right wall and ball centering
 {
+    int spd = (speedTimer > 0) ? 14 : PADDLE_SPEED;
+
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
-        paddleX = paddleX - PADDLE_SPEED;
+        paddleX = paddleX - spd;
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
-        paddleX = paddleX + PADDLE_SPEED;
+        paddleX = paddleX + spd;
 
     if (paddleX < 0)
     {
         paddleX = 0;
     }
-    if (paddleX + PADDLE_W > WIN_W)
+    if (paddleX + currentPaddleW > WIN_W)
     {
-        paddleX = WIN_W - PADDLE_W;
+        paddleX = WIN_W - currentPaddleW;
     }
     if (ballWaiting == true)
     {
-        ballX = paddleX + (PADDLE_W - BALL_SIZE) / 2;
+        ballX = paddleX + (currentPaddleW - BALL_SIZE) / 2;
     }
 }
 
@@ -136,10 +162,25 @@ void checkBricks(bool isXStep)
             int r = (cy[i] - (int)BRICKS_Y) / (int)BRICK_H;
             if (bricks[r][c] > 0 && !(r == lastR && c == lastC))
             {
+				bool wasHard = (rand() % 3 == 0);            // now powerups will spawn randomly
                 bricks[r][c]--;
                 if (bricks[r][c] == 0)
                 {
                     score += POINTS_BREAK;
+                    if (wasHard)   // spawns a powerup
+                    {
+                        for (int p = 0; p < MAX_POWERUPS; p++)
+                        {
+                            if (!powerActive[p])
+                            {
+                                powerActive[p] = true;
+                                powerX[p] = c * BRICK_W + BRICK_W / 2.f - POWER_SIZE / 2.f;
+                                powerY[p] = BRICKS_Y + r * BRICK_H;
+                                powerType[p] = (rand() % 2) + 1;
+                                break;
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -206,17 +247,17 @@ void moveBall()
     }
 }
 
-void bounceOnPaddle()
+void bounceOnPaddle() // swapped PADDLE_W for currentPaddleW and divided by (currentPaddleW / 4) so the 4 bounce angles stretch evenly when the paddle is wide
 {
     if (dy > 0)
     {
         if (ballY + BALL_SIZE >= PADDLE_Y && ballY <= PADDLE_Y + PADDLE_H &&
-            ballX + BALL_SIZE >= paddleX && ballX <= paddleX + PADDLE_W)
+            ballX + BALL_SIZE >= paddleX && ballX <= paddleX + currentPaddleW)
         {
             ballY = PADDLE_Y - BALL_SIZE;
             dy = -5;
             int ballCenter = ballX + BALL_SIZE / 2;
-            int part = (ballCenter - paddleX) / 25;
+            int part = (ballCenter - paddleX) / (currentPaddleW / 4);
             if (part < 0)
             {
                 part = 0;
@@ -303,6 +344,7 @@ bool loadGame()
     gameState = PLAYING;
     return true;
 }
+//-------------------------------------------------------------------------------------------------------------------------------------------------------
 
 void drawText(sf::RenderWindow& w, const std::string& str, float x, float y,
     unsigned size, sf::Color color = sf::Color::White)
@@ -338,7 +380,7 @@ void drawPaddleAndBall(sf::RenderWindow& w)
 {
     float px = (float)paddleX;
     float py = (float)PADDLE_Y;
-    float pw = (float)PADDLE_W;
+    float pw = (float)currentPaddleW;
     float ph = (float)PADDLE_H;
     float r = ph / 2.f;
 
@@ -563,6 +605,50 @@ void drawEndScreen(sf::RenderWindow& w)
     drawCenteredText("> Press Enter <", 28, sf::Color(255, 235, 80), sf::Color(20, 20, 40), promptY);
 }
 
+void updatePowerUps() 
+{
+    for (int p = 0; p < MAX_POWERUPS; p++)
+    {
+        if (powerActive[p])
+        {
+            powerY[p] += 3.f;
+
+            if (powerY[p] + POWER_SIZE >= PADDLE_Y && powerY[p] <= PADDLE_Y + PADDLE_H &&
+                powerX[p] + POWER_SIZE >= paddleX && powerX[p] <= paddleX + currentPaddleW)
+            {
+                powerActive[p] = false;
+                if (powerType[p] == POWER_BIG)
+                {
+                    currentPaddleW = 150;
+                    bigPaddleTimer = 600;
+                }
+                else if (powerType[p] == POWER_SPEED)
+                {
+                    speedTimer = 480;
+                }
+            }
+            else if (powerY[p] > WIN_H)
+            {
+                powerActive[p] = false;
+            }
+        }
+    }
+
+    if (bigPaddleTimer > 0)
+    {
+        bigPaddleTimer--;
+        if (bigPaddleTimer == 0)
+        {
+            currentPaddleW = PADDLE_W;
+        }
+    }
+
+    if (speedTimer > 0)
+    {
+        speedTimer--;
+    }
+}
+
 void handleInput(sf::RenderWindow& window)
 {
     pressedKey = KEY_NONE;
@@ -622,6 +708,7 @@ void updateGame(sf::RenderWindow& window)
         moveBall();
         bounceOnPaddle();
         hitBricks();
+        updatePowerUps();
         break;
     case GAME_OVER:
         if (pressedKey == KEY_ENTER)
@@ -666,6 +753,21 @@ void drawGame(sf::RenderWindow& window)
         drawBricks(window);
         drawPaddleAndBall(window);
         drawHUD(window);
+        for (int p = 0; p < MAX_POWERUPS; p++)
+        {
+            if (powerActive[p])
+            {
+                sf::CircleShape orb(POWER_SIZE / 2.f);
+                orb.setPosition({ powerX[p], powerY[p] });
+                orb.setOutlineThickness(2.f);
+                orb.setOutlineColor(sf::Color::White);
+                if (powerType[p] == POWER_BIG)
+                    orb.setFillColor(sf::Color(50, 235, 140));
+                else
+                    orb.setFillColor(sf::Color(220, 70, 255));
+                window.draw(orb);
+            }
+        }
         break;
     case GAME_OVER:
         drawEndScreen(window);
